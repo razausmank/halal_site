@@ -9,6 +9,7 @@ from alembic import context
 # Import our models and database configuration
 from app.database.connection import Base
 from app.models.item import Item  # Import all models here
+from app.models.user import User  # Import User model
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

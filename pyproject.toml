@@ -12,7 +12,11 @@ dependencies = [
     "uvicorn (>=0.34.3,<0.35.0)",
     "sqlalchemy (>=2.0.41,<3.0.0)",
     "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "alembic (>=1.16.2,<2.0.0)"
+    "alembic (>=1.16.2,<2.0.0)",
+    "python-jose[cryptography] (>=3.5.0,<4.0.0)",
+    "passlib[bcrypt] (>=1.7.4,<2.0.0)",
+    "python-multipart (>=0.0.20,<0.0.21)",
+    "email-validator (>=2.2.0,<3.0.0)"
 ]
 
 
