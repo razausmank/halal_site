@@ -1,0 +1,13 @@
+- add a new field in the users table to understand the whole thing (=====completed=====) 
+
+- make a simple restaurant schema etc wiht tpye (=====completed=====)  
+- make a crud based off of that  (=====completed=====) 
+
+
+- explore Open Food Facts API – https://world.openfoodfacts.org/data
+- explore USDA FoodData Central API – https://fdc.nal.usda.gov/api-key-signup.html
+- scrape them and figure out a way to cross reference them against a halal ingredients database etc. 
+
+
+- figure out if you can get all the restaurants from google maps API 
+- figure out how to scrape all of that data 

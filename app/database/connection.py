@@ -19,4 +19,10 @@ Base = declarative_base()
 
 def create_tables():
     """Create all tables"""
-    Base.metadata.create_all(bind=engine) 
+    Base.metadata.create_all(bind=engine)
+
+def get_db():
+    """Get database session"""
+    from sqlalchemy.orm import Session
+    with Session(engine) as session:
+        yield session 

@@ -4,18 +4,13 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
 
-from app.database.connection import engine
+from app.database.connection import get_db
 from app.models.user import User
 from app.schemas.auth import UserRegister, UserLogin, UserResponse, Token, PasswordResetRequest, PasswordReset
 from app.auth.utils import get_password_hash, verify_password, create_access_token, verify_token, generate_reset_token
 
 router = APIRouter()
 security = HTTPBearer()
-
-def get_db():
-    """Get database session"""
-    with Session(engine) as session:
-        yield session
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> User:
     """Get current authenticated user"""
@@ -62,7 +57,8 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     db_user = User(
         email=user_data.email,
         password_hash=hashed_password,
-        name=user_data.name
+        name=user_data.name, 
+        age=user_data.age
     )
     
     db.add(db_user)

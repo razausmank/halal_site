@@ -6,6 +6,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     name: str
+    age: int
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -16,6 +17,7 @@ class UserResponse(BaseModel):
     email: str
     name: str
     is_active: bool
+    age: int 
     created_at: datetime
 
     class Config:
