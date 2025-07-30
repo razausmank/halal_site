@@ -10,6 +10,8 @@ from alembic import context
 from app.database.connection import Base
 from app.models.item import Item  # Import all models here
 from app.models.user import User  # Import User model
+from app.models.restaurant import Restaurant  # Import Restaurant model
+from app.models.data_collection import data_collection_api_calls  # Import data collection model
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
