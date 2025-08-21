@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Any
 
 class RestaurantBase(BaseModel):
+    place_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     address: Optional[str] = None

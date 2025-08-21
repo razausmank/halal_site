@@ -5,6 +5,7 @@ class Restaurant(Base):
     __tablename__ = "restaurants"
 
     id = Column(Integer, primary_key=True, index=True)
+    place_id = Column(String, nullable=True, unique=True, index=True)  # Google Maps place_id for duplicate checking
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     address = Column(String, nullable=True)

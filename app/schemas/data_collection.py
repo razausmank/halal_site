@@ -17,6 +17,18 @@ class DataCollectionBase(BaseModel):
 class DataCollectionCreate(DataCollectionBase):
     pass
 
+class DataCollectionUpdate(BaseModel):
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    status: Optional[str] = None
+    processed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    restaurants_found: Optional[int] = None
+    api_calls_made: Optional[int] = None
+    retry_count: Optional[int] = None
+    max_retries: Optional[int] = None
+    response_body: Optional[Dict[str, Any]] = None
+
 class DataCollectionResponse(DataCollectionBase):
     id: int
     created_at: datetime
