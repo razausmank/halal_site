@@ -16,47 +16,127 @@ router = APIRouter()
 def get_all_restaurants_for_location(lat, lng, API_KEY):
     """
     Get all restaurants for a location using Google Maps API pagination.
+    Uses multiple search queries to get comprehensive coverage.
     Returns all results, not just the first 20.
     """
     all_results = []
-    next_page_token = None
-    api_calls_made = 0
+    all_place_ids = set()  # Track unique restaurants by place_id
     
-    while True:
-        # Build URL with pagination
-        url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query=restaurants near {lat},{lng}&location={lat},{lng}&radius=1200&key={API_KEY}"
+    # Multiple search queries for better coverage
+    search_queries = [
+        "restaurants near {lat},{lng}",
+        "fast food near {lat},{lng}",
+        "cafes near {lat},{lng}",
+        "food courts near {lat},{lng}",
+        "takeout near {lat},{lng}"
+    ]
+    
+    total_api_calls = 0
+    
+    for query_index, query_template in enumerate(search_queries):
+        query = query_template.format(lat=lat, lng=lng)
+        print(f"  Search query {query_index + 1}: {query}")
         
-        if next_page_token:
-            url += f"&pagetoken={next_page_token}"
+        next_page_token = None
+        api_calls_made = 0
         
-        try:
-            response = requests.get(url)
-            response.raise_for_status()
-            data = response.json()
-            api_calls_made += 1
+        while True:
+            # Build URL with pagination
+            url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={query}&location={lat},{lng}&radius=1500&key={API_KEY}"
             
-            if data.get("status") == "OK":
-                if data.get("results"):
-                    all_results.extend(data["results"])
-                    print(f"  Page {api_calls_made}: Found {len(data['results'])} restaurants")
+            if next_page_token:
+                url += f"&pagetoken={next_page_token}"
+            
+            try:
+                response = requests.get(url)
+                response.raise_for_status()
+                data = response.json()
+                api_calls_made += 1
+                total_api_calls += 1
                 
-                # Check if there are more pages
-                next_page_token = data.get("next_page_token")
-                if not next_page_token:
+                if data.get("status") == "OK":
+                    if data.get("results"):
+                        # Add only new restaurants (by place_id)
+                        new_restaurants = []
+                        for restaurant in data["results"]:
+                            place_id = restaurant.get("place_id")
+                            if place_id and place_id not in all_place_ids:
+                                all_place_ids.add(place_id)
+                                new_restaurants.append(restaurant)
+                        
+                        all_results.extend(new_restaurants)
+                        print(f"    Page {api_calls_made}: Found {len(data['results'])} restaurants, {len(new_restaurants)} new")
+                    
+                    # Check if there are more pages
+                    next_page_token = data.get("next_page_token")
+                    if not next_page_token:
+                        break
+                    
+                    # Google requires a short delay between pagination requests
+                    print(f"    Waiting 2 seconds for next page...")
+                    time.sleep(2)
+                else:
+                    print(f"    API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}")
                     break
-                
-                # Google requires a short delay between pagination requests
-                print(f"  Waiting 2 seconds for next page...")
-                time.sleep(2)
-            else:
-                print(f"  API error: {data.get('status')} - {data.get('error_message', 'Unknown error')}")
+                    
+            except Exception as e:
+                print(f"    Error making API call: {str(e)}")
                 break
-                
-        except Exception as e:
-            print(f"  Error making API call: {str(e)}")
-            break
+        
+        # Small delay between different search queries
+        if query_index < len(search_queries) - 1:
+            print(f"  Waiting 1 second before next search query...")
+            time.sleep(1)
     
-    print(f"  Total restaurants found: {len(all_results)} (in {api_calls_made} API calls)")
+    print(f"  Total restaurants found: {len(all_results)} (in {total_api_calls} API calls)")
+    
+    # Also try Nearby Search API for additional coverage
+    print(f"  Trying Nearby Search API for additional coverage...")
+    nearby_results = get_restaurants_with_nearby_search(lat, lng, API_KEY)
+    
+    # Add any new restaurants from Nearby Search
+    for restaurant in nearby_results:
+        place_id = restaurant.get("place_id")
+        if place_id and place_id not in all_place_ids:
+            all_place_ids.add(place_id)
+            all_results.append(restaurant)
+    
+    print(f"  Final total: {len(all_results)} unique restaurants found")
+    return all_results
+
+def get_restaurants_with_nearby_search(lat, lng, API_KEY):
+    """
+    Alternative method using Google Maps Nearby Search API.
+    Sometimes returns different/more results than Text Search.
+    """
+    all_results = []
+    all_place_ids = set()
+    
+    # Nearby Search API
+    url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json?location={lat},{lng}&radius=1500&type=restaurant&key={API_KEY}"
+    
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        
+        if data.get("status") == "OK":
+            if data.get("results"):
+                for restaurant in data["results"]:
+                    place_id = restaurant.get("place_id")
+                    if place_id and place_id not in all_place_ids:
+                        all_place_ids.add(place_id)
+                        all_results.append(restaurant)
+                
+                print(f"  Nearby Search: Found {len(data['results'])} restaurants, {len(all_results)} new")
+            else:
+                print(f"  Nearby Search: No results found")
+        else:
+            print(f"  Nearby Search API error: {data.get('status')}")
+            
+    except Exception as e:
+        print(f"  Nearby Search error: {str(e)}")
+    
     return all_results
 
 @router.get('/datacheck')
@@ -83,7 +163,7 @@ def get_location(db: Session = Depends(get_db)):
     saved_count = 0
     queries = []
    
-    step_size = 0.01 
+    step_size = 0.005  # 500m spacing for better coverage
     lat_length = int((max_lat - min_lat)/step_size) + 1 
     long_length = int((max_long - min_long)/step_size) + 1 
     
@@ -374,6 +454,8 @@ def fetch_restaurant_details(batch_size: int = 20, db: Session = Depends(get_db)
     total_restaurants = len(all_restaurant_data)
     
     # Process in batches
+    api_calls_since_last_wait = 0  # Track actual API calls made
+    
     for i in range(0, total_restaurants, batch_size):
         batch_number += 1
         batch_start = i
@@ -401,6 +483,9 @@ def fetch_restaurant_details(batch_size: int = 20, db: Session = Depends(get_db)
                 
                 response = requests.get(details_url)
                 response.raise_for_status()
+                
+                # Increment API call counter (only for actual API calls)
+                api_calls_since_last_wait += 1
                 
                 details_data = response.json()
                 
@@ -485,11 +570,16 @@ def fetch_restaurant_details(batch_size: int = 20, db: Session = Depends(get_db)
             except Exception as e:
                 error_count += 1
                 print(f"Error processing restaurant {restaurant.get('name', 'Unknown')}: {str(e)}")
+            
+            # Check if we need to wait after 20 API calls
+            if api_calls_since_last_wait >= 20:
+                print(f"Made {api_calls_since_last_wait} API calls, waiting 30 seconds...")
+                time.sleep(30)
+                api_calls_since_last_wait = 0  # Reset counter
+                print("Resuming processing...")
         
-        # Add delay between batches (except for the last batch)
-        if batch_end < total_restaurants:
-            print(f"Waiting 30 seconds before next batch...")
-            time.sleep(30)
+        # Remove the old batch-based waiting logic
+        # The function now waits based on actual API calls, not batch boundaries
     
     return {
         "message": "Restaurant details fetched successfully",
